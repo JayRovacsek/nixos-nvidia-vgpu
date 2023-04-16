@@ -1,4 +1,4 @@
-{ lib, fetchPypi, python, ... }:
+{ lib, fetchPypi, python, frida-core, ... }:
 let
   pname = "frida";
   name = pname;
@@ -21,6 +21,8 @@ let
   # TODO: come back when I care more 
 in buildPythonPackage {
   inherit pname name version meta;
+
+  FRIDA_CORE_DEVKIT = "${frida-core}/share";
 
   src = fetchPypi {
     inherit pname version;

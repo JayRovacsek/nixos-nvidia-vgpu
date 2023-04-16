@@ -1,4 +1,4 @@
-{ lib, stdenv, fetchFromGitHub, meson, vala, pkg-config, glib, cmake, libgee, json-glib, capstone, ... }:
+{ lib, stdenv, fetchFromGitHub, meson, vala, pkg-config, glib, cmake, libgee, json-glib, capstone-src, ... }:
 let
   pname = "frida-gum";
   name = pname;
@@ -14,7 +14,15 @@ let
 
   # Broken on > meson.build:397:0: ERROR: Automatic wrap-based subproject downloading is disabled
   # in relation to capstone - todo look into it in the future.
-  buildInputs = [ meson vala pkg-config glib cmake libgee json-glib capstone ];
+  buildInputs = [ meson vala pkg-config glib cmake libgee json-glib ];
+
+  buildPhase = ''
+    ln -s ${capstone-src}/share capstone
+  '';
+
+  installPhase = ''
+    runHook preInstall
+  '';
 
   src = fetchFromGitHub {
     owner = "frida";
@@ -23,4 +31,4 @@ let
     sha256 = "sha256-HiTCqhGUDHfu5Za9FmYYZeU5fY4aFLEvdYo+4ujHBsU=";
   };
 
-in stdenv.mkDerivation { inherit src pname name version meta buildInputs; }
+in stdenv.mkDerivation { inherit buildPhase installPhase src pname name version meta buildInputs; }

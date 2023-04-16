@@ -1,4 +1,4 @@
-{ lib, stdenv, fetchFromGitHub, meson, vala, pkg-config, glib, cmake, libgee, json-glib, libsoup_3, ... }:
+{ lib, stdenv, fetchFromGitHub, meson, vala, pkg-config, glib, cmake, libgee, json-glib, libsoup_3, gnumake, ... }:
 let
   pname = "frida-core";
   name = pname;
@@ -20,6 +20,9 @@ let
     repo = "frida-core";
     rev = "8c4403bad63ca5db37e99a46e62e3d1facd94a12";
     sha256 = "sha256-mDXHJZ1RKbGmHjdhjZNmuD9fQCyWMoewjpBbIA5FAO0=";
+    fetchSubmodules = true;
   };
 
-in stdenv.mkDerivation { inherit src pname name version meta buildInputs nativeBuildInputs; }
+  installPhase = "${gnumake}/bin/make";
+
+in stdenv.mkDerivation { inherit installPhase src pname name version meta buildInputs; }
