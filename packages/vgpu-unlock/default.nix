@@ -1,4 +1,4 @@
-{ fetchFromGitHub, stdenv, lib, bash, python, frida-tools }:
+{ fetchFromGitHub, stdenv, lib, bash, python, frida-tools, coreutils }:
 stdenv.mkDerivation {
   name = "nvidia-vgpu-unlock";
   version = "unstable-2021-04-24";
@@ -24,5 +24,5 @@ stdenv.mkDerivation {
       --replace /bin/bash ${bash}/bin/bash
   '';
 
-  installPhase = "install -Dm755 vgpu_unlock $out/bin/vgpu_unlock";
+  installPhase = "${coreutils}/bin/install -Dm755 vgpu_unlock $out/bin/vgpu_unlock";
 }

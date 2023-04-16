@@ -1,4 +1,4 @@
-{ lib, stdenv, fetchFromGitHub, meson, vala, pkg-config, glib, cmake, libgee, json-glib, capstone-src, ... }:
+{ lib, stdenv, fetchFromGitHub, meson, vala, pkg-config, glib, cmake, libgee, json-glib, capstone-src, coreutils, ... }:
 let
   pname = "frida-gum";
   name = pname;
@@ -10,6 +10,7 @@ let
     homepage = "https://github.com/frida/frida-gum";
     downloadPage = "https://github.com/frida/frida/releases";
     license = licenses.wxWindows;
+    broken = true;
   };
 
   # Broken on > meson.build:397:0: ERROR: Automatic wrap-based subproject downloading is disabled
@@ -17,7 +18,7 @@ let
   buildInputs = [ meson vala pkg-config glib cmake libgee json-glib ];
 
   buildPhase = ''
-    ln -s ${capstone-src}/share capstone
+    ${coreutils}/bin/ln -s ${capstone-src}/share capstone
   '';
 
   installPhase = ''

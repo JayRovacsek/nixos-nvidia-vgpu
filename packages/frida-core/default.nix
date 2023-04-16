@@ -10,6 +10,7 @@ let
     homepage = "https://github.com/frida/frida-core";
     downloadPage = "https://github.com/frida/frida/releases";
     license = licenses.wxWindows;
+    broken = true;
   };
 
   # Failing on frida-gum - which is failing itself.

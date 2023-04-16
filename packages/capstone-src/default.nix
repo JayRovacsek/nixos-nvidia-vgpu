@@ -1,4 +1,4 @@
-{ lib, stdenv, fetchFromGitHub }:
+{ lib, stdenv, fetchFromGitHub, coreutils }:
 let
   pname = "capstone-src";
   name = pname;
@@ -20,8 +20,8 @@ let
   };
 
   installPhase = ''
-    mkdir -p $out/share
-    cp -r $src/* $out/share
+    ${coreutils}/bin/mkdir -p $out/share
+    ${coreutils}/bin/cp -r $src/* $out/share
   '';
 
 in stdenv.mkDerivation { inherit version installPhase src pname name meta; }

@@ -30,6 +30,7 @@
         pkgs = self.inputs.nixpkgs.legacyPackages.${system};
       };
     }) // {
+      lib = import ./lib { inherit self; };
       nixosModules = {
         nvidia-vgpu = import ./nixosModules/default.nix { inherit self; };
         default = self.outputs.nixosModules.nvidia-vgpu;

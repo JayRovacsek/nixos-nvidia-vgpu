@@ -1,4 +1,4 @@
-{ lib, stdenv, fetchurl, gnutar, ... }:
+{ lib, stdenv, fetchurl, gnutar, coreutils, ... }:
 let
   pname = "frida-core";
   name = pname;
@@ -22,10 +22,10 @@ let
   phases = [ "installPhase" ];
 
   installPhase = ''
-    mkdir -p $out/share 
+    ${coreutils}/bin/mkdir -p $out/share 
     ${gnutar}/bin/tar -xf $src
-    mv frida* $out/share
-    mv libfrida* $out/share
+    ${coreutils}/bin/mv frida* $out/share
+    ${coreutils}/bin/mv libfrida* $out/share
   '';
 
 in stdenv.mkDerivation { inherit installPhase phases src pname name version meta buildInputs; }

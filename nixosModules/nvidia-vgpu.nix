@@ -1,59 +1,25 @@
 { self, pkgs, lib, config, ... }:
 
 let
-  inherit (pkgs) system;
+  inherit (pkgs) system coreutils pciutils stdenv substituteAll;
+  inherit (self.lib) requireFile;
+  inherit (self.packages.${system}) vgpu-unlock nvidia-vgpu-kvm-src;
+
   cfg = config.hardware.nvidia.vgpu;
-
-  inherit (self.packages.${system}) vgpu-unlock;
-
-  vgpuVersion = "460.32.04";
-  gridVersion = "460.32.03";
-  guestVersion = "461.33";
-
-  combinedZipName = "NVIDIA-GRID-Linux-KVM-${vgpuVersion}-${gridVersion}-${guestVersion}.zip";
-  requireFile = { name, ... }@args:
-    pkgs.requireFile (rec {
-      inherit name;
-      url = "https://www.nvidia.com/object/vGPU-software-driver.html";
-      message = ''
-        Unfortunately, we cannot download file ${name} automatically.
-        This file can be extracted from ${combinedZipName}.
-        Please go to ${url} to download it yourself, and add it to the Nix store
-        using either
-          nix-store --add-fixed sha256 ${name}
-        or
-          nix-prefetch-url --type sha256 file:///path/to/${name}
-      '';
-    } // args);
-
-  nvidia-vgpu-kvm-src = pkgs.runCommand "nvidia-${vgpuVersion}-vgpu-kvm-src" {
-    src = requireFile {
-      name = "NVIDIA-Linux-x86_64-${vgpuVersion}-vgpu-kvm.run";
-      sha256 = "00ay1f434dbls6p0kaawzc6ziwlp9dnkg114ipg9xx8xi4360zzl";
-    };
-  } ''
-    mkdir $out
-    cd $out
-
-    # From unpackManually() in builder.sh of nvidia-x11 from nixpkgs
-    skip=$(sed 's/^skip=//; t; d' $src)
-    tail -n +$skip $src | xz -d | tar xvf -
-  '';
-
-in {
+in with lib; {
   options = {
     hardware.nvidia.vgpu = {
-      enable = lib.mkEnableOption "vGPU support";
+      enable = mkEnableOption "vGPU support";
 
-      unlock.enable = lib.mkOption {
+      unlock.enable = mkOption {
         default = false;
-        type = lib.types.bool;
+        type = types.bool;
         description = "Unlock vGPU functionality for consumer grade GPUs";
       };
     };
   };
 
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
     hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.stable.overrideAttrs
       ({ patches ? [ ], postUnpack ? "", postPatch ? "", preFixup ? "", ... }: {
         name = "nvidia-x11-${vgpuVersion}-${gridVersion}-${config.boot.kernelPackages.kernel.version}";
@@ -64,24 +30,24 @@ in {
           sha256 = "0smvmxalxv7v12m0hvd5nx16jmcc7018s8kac3ycmxam8l0k9mw9";
         };
 
-        patches = patches ++ [ ./nvidia-vgpu-merge.patch ] ++ lib.optional cfg.unlock.enable (pkgs.substituteAll {
+        patches = patches ++ [ ./nvidia-vgpu-merge.patch ] ++ optional cfg.unlock.enable (substituteAll {
           src = ./nvidia-vgpu-unlock.patch;
           vgpu_unlock = vgpu-unlock.src;
         });
 
         postUnpack = postUnpack + ''
           # More merging, besides patch above
-          cp -r ${nvidia-vgpu-kvm-src}/init-scripts .
-          cp ${nvidia-vgpu-kvm-src}/kernel/common/inc/nv-vgpu-vfio-interface.h kernel/common/inc//nv-vgpu-vfio-interface.h
-          cp ${nvidia-vgpu-kvm-src}/kernel/nvidia/nv-vgpu-vfio-interface.c kernel/nvidia/nv-vgpu-vfio-interface.c
+          ${coreutils}/bin/cp -r ${nvidia-vgpu-kvm-src}/init-scripts .
+          ${coreutils}/bin/cp ${nvidia-vgpu-kvm-src}/kernel/common/inc/nv-vgpu-vfio-interface.h kernel/common/inc//nv-vgpu-vfio-interface.h
+          ${coreutils}/bin/cp ${nvidia-vgpu-kvm-src}/kernel/nvidia/nv-vgpu-vfio-interface.c kernel/nvidia/nv-vgpu-vfio-interface.c
           echo "NVIDIA_SOURCES += nvidia/nv-vgpu-vfio-interface.c" >> kernel/nvidia/nvidia-sources.Kbuild
-          cp -r ${nvidia-vgpu-kvm-src}/kernel/nvidia-vgpu-vfio kernel/nvidia-vgpu-vfio
+          ${coreutils}/bin/cp -r ${nvidia-vgpu-kvm-src}/kernel/nvidia-vgpu-vfio kernel/nvidia-vgpu-vfio
 
           for i in libnvidia-vgpu.so.${vgpuVersion} libnvidia-vgxcfg.so.${vgpuVersion} nvidia-vgpu-mgr nvidia-vgpud vgpuConfig.xml sriov-manage; do
-            cp ${nvidia-vgpu-kvm-src}/$i $i
+            ${coreutils}/bin/cp ${nvidia-vgpu-kvm-src}/$i $i
           done
 
-          chmod -R u+rw .
+          ${coreutils}/bin/chmod -R u+rw .
         '';
 
         postPatch = postPatch + ''
@@ -89,8 +55,8 @@ in {
           sed -i 's|/usr/share/nvidia/vgpu|/etc/nvidia-vgpu-xxxxx|' nvidia-vgpud
 
           substituteInPlace sriov-manage \
-            --replace lspci ${pkgs.pciutils}/bin/lspci \
-            --replace setpci ${pkgs.pciutils}/bin/setpci
+            --replace lspci ${pciutils}/bin/lspci \
+            --replace setpci ${pciutils}/bin/setpci
         '';
 
         # HACK: Using preFixup instead of postInstall since nvidia-x11 builder.sh doesn't support hooks
@@ -98,7 +64,7 @@ in {
           for i in libnvidia-vgpu.so.${vgpuVersion} libnvidia-vgxcfg.so.${vgpuVersion}; do
             install -Dm755 "$i" "$out/lib/$i"
           done
-          patchelf --set-rpath ${pkgs.stdenv.cc.cc.lib}/lib $out/lib/libnvidia-vgpu.so.${vgpuVersion}
+          patchelf --set-rpath ${stdenv.cc.cc.lib}/lib $out/lib/libnvidia-vgpu.so.${vgpuVersion}
           install -Dm644 vgpuConfig.xml $out/vgpuConfig.xml
 
           for i in nvidia-vgpud nvidia-vgpu-mgr; do
@@ -118,10 +84,10 @@ in {
 
       serviceConfig = {
         Type = "forking";
-        ExecStart = "${lib.optionalString cfg.unlock.enable "${vgpu_unlock}/bin/vgpu_unlock "}${
-            lib.getBin config.hardware.nvidia.package
+        ExecStart = "${optionalString cfg.unlock.enable "${vgpu_unlock}/bin/vgpu_unlock "}${
+            getBin config.hardware.nvidia.package
           }/bin/nvidia-vgpud";
-        ExecStopPost = "${pkgs.coreutils}/bin/rm -rf /var/run/nvidia-vgpud";
+        ExecStopPost = "${coreutils}/bin/rm -rf /var/run/nvidia-vgpud";
         Environment = [ "__RM_NO_VERSION_CHECK=1" ];
       };
     };
@@ -134,10 +100,10 @@ in {
       serviceConfig = {
         Type = "forking";
         KillMode = "process";
-        ExecStart = "${lib.optionalString cfg.unlock.enable "${vgpu_unlock}/bin/vgpu_unlock "}${
-            lib.getBin config.hardware.nvidia.package
+        ExecStart = "${optionalString cfg.unlock.enable "${vgpu_unlock}/bin/vgpu_unlock "}${
+            getBin config.hardware.nvidia.package
           }/bin/nvidia-vgpu-mgr";
-        ExecStopPost = "${pkgs.coreutils}/bin/rm -rf /var/run/nvidia-vgpu-mgr";
+        ExecStopPost = "${coreutils}/bin/rm -rf /var/run/nvidia-vgpu-mgr";
         Environment = [ "__RM_NO_VERSION_CHECK=1" ];
       };
     };
