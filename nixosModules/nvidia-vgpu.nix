@@ -1,11 +1,10 @@
-{ pkgs, lib, config, ... }:
+{ self, pkgs, lib, config, ... }:
 
 let
+  inherit (pkgs) system;
   cfg = config.hardware.nvidia.vgpu;
 
-  mdevctl = pkgs.callPackage ./mdevctl { };
-  pythonPackages = pkgs.python38Packages;
-  frida = pythonPackages.callPackage ./frida { };
+  inherit (self.packages.${system}) vgpu-unlock;
 
   vgpuVersion = "460.32.04";
   gridVersion = "460.32.03";
@@ -41,26 +40,6 @@ let
     tail -n +$skip $src | xz -d | tar xvf -
   '';
 
-  vgpu_unlock = pkgs.stdenv.mkDerivation {
-    name = "nvidia-vgpu-unlock";
-    version = "unstable-2021-04-22";
-
-    src = pkgs.fetchFromGitHub {
-      owner = "DualCoder";
-      repo = "vgpu_unlock";
-      rev = "1888236c75d8eac673695be8b000f0b065111c51";
-      sha256 = "0s8bmscb8irj1sggfg1fhacqd1lh59l326bnrk4a2g4qngsbkix3";
-    };
-
-    buildInputs = [ (pythonPackages.python.withPackages (_p: [ frida ])) ];
-
-    postPatch = ''
-      substituteInPlace vgpu_unlock \
-        --replace /bin/bash ${pkgs.bash}/bin/bash
-    '';
-
-    installPhase = "install -Dm755 vgpu_unlock $out/bin/vgpu_unlock";
-  };
 in {
   options = {
     hardware.nvidia.vgpu = {
@@ -87,7 +66,7 @@ in {
 
         patches = patches ++ [ ./nvidia-vgpu-merge.patch ] ++ lib.optional cfg.unlock.enable (pkgs.substituteAll {
           src = ./nvidia-vgpu-unlock.patch;
-          vgpu_unlock = vgpu_unlock.src;
+          vgpu_unlock = vgpu-unlock.src;
         });
 
         postUnpack = postUnpack + ''
@@ -143,9 +122,7 @@ in {
             lib.getBin config.hardware.nvidia.package
           }/bin/nvidia-vgpud";
         ExecStopPost = "${pkgs.coreutils}/bin/rm -rf /var/run/nvidia-vgpud";
-        Environment = [
-          "__RM_NO_VERSION_CHECK=1"
-        ]; # Avoids issue with API version incompatibility when merging host/client drivers
+        Environment = [ "__RM_NO_VERSION_CHECK=1" ];
       };
     };
 
@@ -169,7 +146,7 @@ in {
 
     boot.kernelModules = [ "nvidia-vgpu-vfio" ];
 
-    environment.systemPackages = [ mdevctl ];
-    services.udev.packages = [ mdevctl ];
+    environment.systemPackages = with pkgs; [ mdevctl ];
+    services.udev.packages = with pkgs; [ mdevctl ];
   };
 }

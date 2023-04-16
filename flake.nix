@@ -31,7 +31,7 @@
       };
     }) // {
       nixosModules = {
-        nvidia-vgpu = import ./default.nix;
+        nvidia-vgpu = import ./nixosModules/default.nix { inherit self; };
         default = self.outputs.nixosModules.nvidia-vgpu;
       };
     };

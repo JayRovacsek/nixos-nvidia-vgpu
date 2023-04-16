@@ -1,16 +1,23 @@
-{ fetchFromGitHub, stdenv, bash, frida }:
+{ fetchFromGitHub, stdenv, lib, bash, python, frida-tools }:
 stdenv.mkDerivation {
   name = "nvidia-vgpu-unlock";
-  version = "unstable-2021-04-22";
+  version = "unstable-2021-04-24";
+
+  meta = with lib; {
+    description = "Unlock vGPU functionality for consumer grade GPUs";
+    platforms = platforms.unix;
+    homepage = "https://github.com/dualcoder/vgpu_unlock";
+    license = licenses.mit;
+  };
 
   src = fetchFromGitHub {
     owner = "DualCoder";
     repo = "vgpu_unlock";
     rev = "f432ffc8b7ed245df8858e9b38000d3b8f0352f4";
-    sha256 = "0s8bmscb8irj1sggfg1fhacqd1lh59l326bnrk4a2g4qngsbkix3";
+    sha256 = "sha256-o+8j82Ts8/tEREqpNbA5W329JXnwxfPNJoneNE8qcsU=";
   };
 
-  buildInputs = [ frida ];
+  buildInputs = [ (python.python.withPackages (_p: [ frida-tools ])) ];
 
   postPatch = ''
     substituteInPlace vgpu_unlock \

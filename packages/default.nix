@@ -15,5 +15,5 @@ in rec {
   frida-gum = callPackage ./frida-gum { inherit capstone-src; };
   frida-tools = callPackage ./frida-tools { inherit python frida; };
   typing-extensions = callPackage ./typing-extensions { inherit python; };
-  vgpu-unlock = callPackage ./vgpu-unlock { inherit frida; };
+  vgpu-unlock = callPackage ./vgpu-unlock { inherit python frida-tools; };
 }
