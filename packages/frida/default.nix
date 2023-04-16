@@ -12,15 +12,12 @@ let
     license = licenses.wxWindows;
   };
 
-  inherit (python) buildPythonPackage;
+  inherit (python) buildPythonPackage typing-extensions;
 
-  # This is failing because it needs frida core:
-  #  > Download one from https://github.com/frida/frida/releases, extract it to a directory,
-  #  > and then add an environment variable named FRIDA_CORE_DEVKIT pointing at the directory.
-  # core is failing due to gum and gum due to capstone :)
-  # TODO: come back when I care more 
+  buildInputs = [ typing-extensions ];
+
 in buildPythonPackage {
-  inherit pname name version meta;
+  inherit pname name version meta buildInputs;
 
   FRIDA_CORE_DEVKIT = "${frida-core}/share";
 

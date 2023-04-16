@@ -4,10 +4,7 @@ let
   inherit (pkgs) callPackage;
 
   python = pkgs.python310Packages;
-  inherit (self.packages.${system}) frida;
-  inherit (self.packages.${system}) capstone-src;
-  inherit (self.packages.${system}) frida-core-bin;
-in {
+in rec {
   capstone-src = callPackage ./capstone-src { };
   frida = callPackage ./frida {
     inherit python;
@@ -16,6 +13,7 @@ in {
   frida-core = callPackage ./frida-core { };
   frida-core-bin = callPackage ./frida-core-bin { };
   frida-gum = callPackage ./frida-gum { inherit capstone-src; };
-  frida-tools = callPackage ./frida-tools { inherit python; };
+  frida-tools = callPackage ./frida-tools { inherit python frida; };
+  typing-extensions = callPackage ./typing-extensions { inherit python; };
   vgpu-unlock = callPackage ./vgpu-unlock { inherit frida; };
 }

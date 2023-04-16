@@ -1,4 +1,4 @@
-{ lib, fetchPypi, python, ... }:
+{ lib, fetchPypi, python, frida, ... }:
 let
   pname = "frida-tools";
   name = pname;
@@ -12,15 +12,13 @@ let
     license = licenses.wxWindows;
   };
 
-  inherit (python) buildPythonPackage;
+  inherit (python) buildPythonPackage pygments colorama prompt-toolkit typing-extensions;
 
-in buildPythonPackage {
-  inherit pname name version meta;
+  propagatedBuildInputs = [ frida typing-extensions pygments colorama prompt-toolkit ];
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-k7Wbxeyca1r9jrNzK+q5K/EGQhG/Zgbqy/VAEYoWB+U=";
+    sha256 = "sha256-Irjs7Gy7r77MWAOs7+kQb7dpqzEdXPUILrtmXuvURUk=";
   };
 
-  doCheck = false;
-}
+in buildPythonPackage { inherit pname name version meta propagatedBuildInputs src; }
